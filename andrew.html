@@ -1,0 +1,144 @@
+
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <title>像素灯谜游戏</title>
+  <style>
+    body {
+      margin: 0;
+      background: #000;
+      color: white;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 0.2rem;
+    }
+    .author {
+      font-size: 1.2rem;
+      margin-bottom: 0.5rem;
+      color: #facc15;
+    }
+    .timer {
+      font-size: 1rem;
+      margin-bottom: 1rem;
+      color: #60a5fa;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(5, 48px);
+      gap: 4px;
+    }
+    .cell {
+      width: 48px;
+      height: 48px;
+      background: #1f2937;
+      border: 1px solid #374151;
+      cursor: pointer;
+    }
+    .on {
+      background: #facc15;
+    }
+    .win {
+      margin-top: 1rem;
+      color: #34d399;
+      font-size: 1.2rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>像素灯谜游戏</h1>
+  <div class="author">by 葛嘉俊</div>
+  <div class="timer" id="timer">用时：0 秒</div>
+  <p>点击方格切换其及其周围的灯，全部熄灭即胜！</p>
+  <div class="grid" id="grid"></div>
+  <p id="winMessage" class="win" style="display: none;">你赢了！🎉</p>
+
+  <script>
+    const gridSize = 5;
+    const gridElement = document.getElementById('grid');
+    const winMessage = document.getElementById('winMessage');
+    const timerDisplay = document.getElementById('timer');
+    let grid = [];
+    let time = 0;
+    let timerStarted = false;
+    let timerInterval = null;
+
+    function startTimer() {
+      if (timerStarted) return;
+      timerStarted = true;
+      timerInterval = setInterval(() => {
+        time++;
+        timerDisplay.textContent = '用时：' + time + ' 秒';
+      }, 1000);
+    }
+
+    function stopTimer() {
+      clearInterval(timerInterval);
+    }
+
+    function createGrid() {
+      grid = [];
+      gridElement.innerHTML = '';
+      for (let r = 0; r < gridSize; r++) {
+        const row = [];
+        for (let c = 0; c < gridSize; c++) {
+          const cell = document.createElement('div');
+          cell.className = 'cell';
+          cell.dataset.row = r;
+          cell.dataset.col = c;
+          cell.onclick = () => {
+            if (!timerStarted) startTimer();
+            handleClick(r, c);
+          };
+          gridElement.appendChild(cell);
+          row.push(cell);
+        }
+        grid.push(row);
+      }
+      randomizeGrid(10);
+    }
+
+    function toggleAround(r, c) {
+      const dirs = [[0,0], [0,1], [0,-1], [1,0], [-1,0]];
+      dirs.forEach(([dr, dc]) => {
+        const nr = r + dr;
+        const nc = c + dc;
+        if (nr >= 0 && nr < gridSize && nc >= 0 && nc < gridSize) {
+          grid[nr][nc].classList.toggle('on');
+        }
+      });
+    }
+
+    function handleClick(r, c) {
+      if (winMessage.style.display === 'block') return;
+      toggleAround(r, c);
+      checkWin();
+    }
+
+    function randomizeGrid(clicks) {
+      for (let i = 0; i < clicks; i++) {
+        const r = Math.floor(Math.random() * gridSize);
+        const c = Math.floor(Math.random() * gridSize);
+        toggleAround(r, c);
+      }
+    }
+
+    function checkWin() {
+      const allOff = grid.flat().every(cell => !cell.classList.contains('on'));
+      if (allOff) {
+        stopTimer();
+        winMessage.style.display = 'block';
+      }
+    }
+
+    createGrid();
+  </script>
+</body>
+</html>

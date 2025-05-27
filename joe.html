@@ -1,0 +1,246 @@
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>简易赛车游戏 - 作者：孟子悦</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #333;
+        }
+        #gameCanvas {
+            display: block;
+            background-color: #4a4a4a;
+        }
+        #score {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-family: Arial, sans-serif;
+            font-size: 20px;
+        }
+        #author {
+            position: absolute;
+            top: 40px;
+            left: 10px;
+            color: white;
+            font-family: Arial, sans-serif;
+            font-size: 16px;
+        }
+        #instructions {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            color: white;
+            font-family: Arial, sans-serif;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div id="score">分数: 0</div>
+    <div id="author">作者：孟子悦</div>
+    <div id="instructions">使用左右箭头键移动车辆，避开障碍物</div>
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        
+        // 设置画布大小为窗口大小
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        
+        // 游戏变量
+        let score = 0;
+        let gameSpeed = 5;
+        let gameOver = false;
+        
+        // 玩家车辆
+        const car = {
+            x: canvas.width / 2 - 25,
+            y: canvas.height - 100,
+            width: 50,
+            height: 80,
+            color: '#3498db',
+            speed: 5
+        };
+        
+        // 障碍物数组
+        let obstacles = [];
+        
+        // 道路标记数组
+        let roadMarkings = [];
+        
+        // 初始化道路标记
+        for (let i = 0; i < 10; i++) {
+            roadMarkings.push({
+                x: canvas.width / 2 - 5,
+                y: -100 + i * 150,
+                width: 10,
+                height: 50
+            });
+        }
+        
+        // 键盘控制
+        const keys = {
+            left: false,
+            right: false
+        };
+        
+        // 键盘事件监听
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') keys.left = true;
+            if (e.key === 'ArrowRight') keys.right = true;
+            if (gameOver && e.key === ' ') resetGame();
+        });
+        
+        window.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowLeft') keys.left = false;
+            if (e.key === 'ArrowRight') keys.right = false;
+        });
+        
+        // 生成随机障碍物
+        function spawnObstacle() {
+            const width = Math.random() * 100 + 50;
+            const x = Math.random() * (canvas.width - width);
+            
+            obstacles.push({
+                x: x,
+                y: -100,
+                width: width,
+                height: 60,
+                color: `hsl(${Math.random() * 360}, 70%, 50%)`
+            });
+        }
+        
+        // 更新游戏状态
+        function update() {
+            if (gameOver) return;
+            
+            // 移动玩家车辆
+            if (keys.left && car.x > 0) {
+                car.x -= car.speed;
+            }
+            if (keys.right && car.x < canvas.width - car.width) {
+                car.x += car.speed;
+            }
+            
+            // 移动道路标记
+            for (let i = 0; i < roadMarkings.length; i++) {
+                roadMarkings[i].y += gameSpeed;
+                if (roadMarkings[i].y > canvas.height) {
+                    roadMarkings[i].y = -50;
+                }
+            }
+            
+            // 移动障碍物
+            for (let i = 0; i < obstacles.length; i++) {
+                obstacles[i].y += gameSpeed;
+                
+                // 检测碰撞
+                if (
+                    car.x < obstacles[i].x + obstacles[i].width &&
+                    car.x + car.width > obstacles[i].x &&
+                    car.y < obstacles[i].y + obstacles[i].height &&
+                    car.y + car.height > obstacles[i].y
+                ) {
+                    gameOver = true;
+                    document.getElementById('instructions').textContent = '游戏结束! 按空格键重新开始';
+                }
+                
+                // 移除屏幕外的障碍物
+                if (obstacles[i].y > canvas.height) {
+                    obstacles.splice(i, 1);
+                    score++;
+                    scoreElement.textContent = `分数: ${score}`;
+                    
+                    // 每得5分增加游戏速度
+                    if (score % 5 === 0) {
+                        gameSpeed += 0.5;
+                    }
+                }
+            }
+            
+            // 随机生成新障碍物
+            if (Math.random() < 0.02) {
+                spawnObstacle();
+            }
+        }
+        
+        // 绘制游戏
+        function draw() {
+            // 清空画布
+            ctx.fillStyle = '#4a4a4a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // 绘制道路
+            ctx.fillStyle = '#555';
+            ctx.fillRect(100, 0, canvas.width - 200, canvas.height);
+            
+            // 绘制道路标记
+            ctx.fillStyle = '#fff';
+            for (let i = 0; i < roadMarkings.length; i++) {
+                ctx.fillRect(roadMarkings[i].x, roadMarkings[i].y, roadMarkings[i].width, roadMarkings[i].height);
+            }
+            
+            // 绘制障碍物
+            for (let i = 0; i < obstacles.length; i++) {
+                ctx.fillStyle = obstacles[i].color;
+                ctx.fillRect(obstacles[i].x, obstacles[i].y, obstacles[i].width, obstacles[i].height);
+            }
+            
+            // 绘制玩家车辆
+            ctx.fillStyle = car.color;
+            ctx.fillRect(car.x, car.y, car.width, car.height);
+            
+            // 绘制游戏结束画面
+            if (gameOver) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                ctx.fillStyle = '#fff';
+                ctx.font = '48px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('游戏结束!', canvas.width / 2, canvas.height / 2 - 50);
+                ctx.font = '24px Arial';
+                ctx.fillText(`最终分数: ${score}`, canvas.width / 2, canvas.height / 2);
+                ctx.fillText('作者：孟子悦', canvas.width / 2, canvas.height / 2 + 30);
+                ctx.fillText('按空格键重新开始', canvas.width / 2, canvas.height / 2 + 80);
+            }
+        }
+        
+        // 重置游戏
+        function resetGame() {
+            score = 0;
+            gameSpeed = 5;
+            gameOver = false;
+            obstacles = [];
+            car.x = canvas.width / 2 - 25;
+            scoreElement.textContent = `分数: ${score}`;
+            document.getElementById('instructions').textContent = '使用左右箭头键移动车辆，避开障碍物';
+        }
+        
+        // 游戏循环
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // 开始游戏
+        gameLoop();
+        
+        // 窗口大小改变时调整画布大小
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            car.x = canvas.width / 2 - 25;
+        });
+    </script>
+</body>
+</html>
+```

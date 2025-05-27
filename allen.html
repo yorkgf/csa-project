@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>俄罗斯方块游戏</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#10B981',
+                        accent: '#F59E0B',
+                        dark: '#1F2937',
+                        light: '#F9FAFB',
+                        tetrominoI: '#06B6D4',
+                        tetrominoJ: '#2563EB',
+                        tetrominoL: '#F59E0B',
+                        tetrominoO: '#EAB308',
+                        tetrominoS: '#10B981',
+                        tetrominoT: '#8B5CF6',
+                        tetrominoZ: '#EF4444',
+                        grid: '#374151'
+                    },
+                    fontFamily: {
+                        game: ['Arial', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .text-shadow {
+                text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            }
+            .animate-float {
+                animation: float 3s ease-in-out infinite;
+            }
+            .animate-pulse-slow {
+                animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+            }
+            .animate-scale {
+                animation: scale 0.3s ease-out forwards;
+            }
+            .animate-drop {
+                animation: drop 0.5s ease-out forwards;
+            }
+            .animate-clear {
+                animation: clear 0.5s ease-out forwards;
+            }
+            @keyframes float {
+                0%, 100% { transform: translateY(0); }
+                50% { transform: translateY(-10px); }
+            }
+            @keyframes scale {
+                from { transform: scale(0.9); opacity: 0; }
+                to { transform: scale(1); opacity: 1; }
+            }
+            @keyframes drop {
+                from { transform: translateY(-20px); opacity: 0; }
+                to { transform: translateY(0); opacity: 1; }
+            }
+            @keyframes clear {
+                0% { background-color: rgba(255, 255, 255, 0.3); }
+                50% { background-color: rgba(255, 255, 255, 0.8); }
+                100% { background-color: rgba(255, 255, 255, 0); }
+            }
+        }
+    </style>
+</head>
+<body class="bg-dark font-game text-light overflow-hidden flex flex-col items-center justify-center min-h-screen">
+    <!-- 游戏容器 -->
+    <div class="relative w-full max-w-4xl mx-auto p-4 flex flex-col md:flex-row items-center gap-6">
+        <!-- 左侧信息 -->
+        <div class="w-full md:w-1/4 flex flex-col items-center">
+            <!-- 玩家名字 -->
+            <h1 class="text-[clamp(1.5rem,5vw,3rem)] font-bold text-primary mb-6 text-shadow animate-float">陈禹澔</h1>
+            
+            <!-- 下一个方块预览 -->
+            <div class="bg-dark/50 rounded-lg p-4 mb-6 border-2 border-primary w-full">
+                <h2 class="text-xl font-bold text-accent mb-2 text-center">下一个</h2>
+                <canvas id="nextPieceCanvas" class="w-full aspect-square border border-grid"></canvas>
+            </div>
+            
+            <!-- 分数显示 -->
+            <div class="bg-dark/50 rounded-lg p-4 mb-6 border-2 border-primary w-full">
+                <h2 class="text-xl font-bold text-accent mb-2">分数</h2>
+                <div class="text-3xl font-bold text-center" id="score">0</div>
+            </div>
+            
+            <!-- 等级显示 -->
+            <div class="bg-dark/50 rounded-lg p-4 mb-6 border-2 border-primary w-full">
+                <h2 class="text-xl font-bold text-accent mb-2">等级</h2>
+                <div class="text-3xl font-bold text-center" id="level">1</div>
+            </div>
+            
+            <!-- 已消除行数 -->
+            <div class="bg-dark/50 rounded-lg p-4 border-2 border-primary w-full">
+                <h2 class="text-xl font-bold text-accent mb-2">已消除行数</h2>
+                <div class="text-3xl font-bold text-center" id="lines">0</div>
+            </div>
+        </div>
+        
+        <!-- 游戏主区域 -->
+        <div class="w-full md:w-2/4 flex flex-col items-center">
+            <!-- 游戏画布 -->
+            <canvas id="gameCanvas" class="w-full aspect-[9/16] bg-dark border-4 border-primary rounded-lg shadow-xl"></canvas>
+            
+            <!-- 控制按钮 -->
+            <div class="grid grid-cols-3 gap-2 w-full max-w-md mt-6 md:hidden">
+                <button id="leftBtn" class="bg-primary hover:bg-primary/80 text-white font-bold py-3 px-4 rounded-lg shadow transition-all transform hover:scale-105">
+                    <i class="fa fa-chevron-left"></i>
+                </button>
+                <button id="downBtn" class="bg-primary hover:bg-primary/80 text-white font-bold py-3 px-4 rounded-lg shadow transition-all transform hover:scale-105">
+                    <i class="fa fa-chevron-down"></i>
+                </button>
+                <button id="rightBtn" class="bg-primary hover:bg-primary/80 text-white font-bold py-3 px-4 rounded-lg shadow transition-all transform hover:scale-105">
+                    <i class="fa fa-chevron-right"></i>
+                </button>
+                <div></div>
+                <button id="rotateBtn" class="bg-secondary hover:bg-secondary/80 text-white font-bold py-3 px-4 rounded-lg shadow transition-all transform hover:scale-105">
+                    <i class="fa fa-rotate-right"></i>
+                </button>
+                <div></div>
+            </div>
+            
+            <!-- 开始/暂停按钮 -->
+            <button id="startBtn" class="mt-6 bg-secondary hover:bg-secondary/80 text-white font-bold py-3 px-8 rounded-lg shadow transition-all transform hover:scale-105">
+                <i class="fa fa-play"></i> 开始
+            </button>
+            
+            <!-- 游戏说明按钮 -->
+            <button id="instructionsBtn" class="mt-4 bg-transparent border-2 border-accent text-accent hover:bg-accent/10 font-medium py-2 px-6 rounded-full transition-all">
+                <i class="fa fa-info-circle mr-2"></i>游戏说明
+            </button>
+        </div>
+        
+        <!-- 右侧信息 (仅在大屏幕显示) -->
+        <div class="hidden md:block w-1/4">
+            <div class="bg-dark/50 rounded-lg p-4 border-2 border-primary h-full">
+                <h2 class="text-xl font-bold text-accent mb-4 text-center">操作说明</h2>
+                <ul class="space-y-3 text-light">
+                    <li class="flex items-start">
+                        <i class="fa fa-keyboard text-accent mt-1 mr-3"></i>
+                        <span><span class="font-bold">← → ↓ ↑</span>: 左右下上移动方块</span>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fa fa-keyboard text-accent mt-1 mr-3"></i>
+                        <span><span class="font-bold">空格</span>: 快速下落</span>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fa fa-keyboard text-accent mt-1 mr-3"></i>
+                        <span><span class="font-bold">P</span>: 暂停游戏</span>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fa fa-keyboard text-accent mt-1 mr-3"></i>
+                        <span><span class="font-bold">R</span>: 重新开始</span>
+                    </li>
+                </ul>
+                
+                <h2 class="text-xl font-bold text-accent mt-6 mb-4 text-center">方块颜色</h2>
+                <div class="grid grid-cols-2 gap-2">
+                    <div class="flex items-center">
+                        <div class="w-6 h-6 bg-tetrominoI mr-2"></div>
+                        <span>I</span>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-6 h-6 bg-tetrominoJ mr-2"></div>
+                        <span>J</span>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-6 h-6 bg-tetrominoL mr-2"></div>
+                        <span>L</span>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-6 h-6 bg-tetrominoO mr-2"></div>
+                        <span>O</span>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-6 h-6 bg-tetrominoS mr-2"></div>
+                        <span>S</span>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-6 h-6 bg-tetrominoT mr-2"></div>
+                        <span>T</span>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-6 h-6 bg-tetrominoZ mr-2"></div>
+                        <span>Z</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 游戏说明模态框 -->
+    <div id="instructionsModal" class="fixed inset-0 bg-dark/90 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-dark border-2 border-primary rounded-xl p-6 max-w-md w-full shadow-2xl animate-scale">
+            <h2 class="text-2xl font-bold text-primary mb-4 text-center">游戏说明</h2>
+            <ul class="space-y-3 text-light">
+                <li class="flex items-start">
+                    <i class="fa fa-arrow-right text-accent mt-1 mr-3"></i>
+                    <span>控制各种形状的方块下落并填满一行或多行以消除它们</span>
+                </li>
+                <li class="flex items-start">
+                    <i class="fa fa-arrow-right text-accent mt-1 mr-3"></i>
+                    <span>消除的行数越多，获得的分数越高</span>
+                </li>
+                <li class="flex items-start">
+                    <i class="fa fa-arrow-right text-accent mt-1 mr-3"></i>
+                    <span>随着分数的增加，游戏速度会加快</span>
+                </li>
+                <li class="flex items-start">
+                    <i class="fa fa-arrow-right text-accent mt-1 mr-3"></i>
+                    <span>当方块堆到顶部时，游戏结束</span>
+                </li>
+                <li class="text-accent font-bold mt-4">键盘控制:</li>
+                <li class="flex items-start ml-6">
+                    <i class="fa fa-keyboard text-accent mt-1 mr-3"></i>
+                    <span><span class="font-bold">← →</span>: 左右移动方块</span>
+                </li>
+                <li class="flex items-start ml-6">
+                    <i class="fa fa-keyboard text-accent mt-1 mr-3"></i>
+                    <span><span class="font-bold">↑</span>: 旋转方块</span>
+                </li>
+                <li class="flex items-start ml-6">
+                    <i class="fa fa-keyboard text-accent mt-1 mr-3"></i>
+                    <span><span class="font-bold">↓</span>: 加速下落</span>
+                </li>
+                <li class="flex items-start ml-6">
+                    <i class="fa fa-keyboard text-accent mt-1 mr-3"></i>
+                    <span><span class="font-bold">空格</span>: 快速下落到底部</span>
+                </li>
+                <li class="flex items-start ml-6">
+                    <i class="fa fa-keyboard text-accent mt-1 mr-3"></i>
+                    <span><span class="font-bold">P</span>: 暂停/继续游戏</span>
+                </li>
+                <li class="flex items-start ml-6">
+                    <i class="fa fa-keyboard text-accent mt-1 mr-3"></i>
+                    <span><span class="font-bold">R</span>: 重新开始游戏</span>
+                </li>
+            </ul>
+            <button id="closeInstructionsBtn" class="mt-6 w-full bg-primary hover:bg-primary/80 text-white font-bold py-3 px-4 rounded-lg shadow transition-all transform hover:scale-105">
+                我知道了
+            </button>
+        </div>
+    </div>
+    
+    <!-- 游戏结束模态框 -->
+    <div id="gameOverModal" class="fixed inset-0 bg-dark/90 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-dark border-2 border-accent rounded-xl p-6 max-w-md w-full shadow-2xl animate-scale">
+            <h2 class="text-2xl font-bold text-accent mb-4 text-center">游戏结束</h2>
+            <div class="text-center mb-6">
+                <p class="text-lg mb-2">你的分数: <span id="finalScore" class="font-bold text-primary">0</span></p>
+                <p class="text-lg mb-2">你的等级: <span id="finalLevel" class="font-bold text-primary">1</span></p>
+                <p class="text-lg">已消除行数: <span id="finalLines" class="font-bold text-primary">0</span></p>
+            </div>
+            <button id="playAgainBtn" class="w-full bg-secondary hover:bg-secondary/80 text-white font-bold py-3 px-4 rounded-lg shadow transition-all transform hover:scale-105">
+                <i class="fa fa-refresh mr-2"></i>再玩一次
+            </button>
+        </div>
+    </div>
+    
+    <!-- 暂停模态框 -->
+    <div id="pauseModal" class="fixed inset-0 bg-dark/80 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-dark border-2 border-primary rounded-xl p-6 max-w-md w-full shadow-2xl animate-scale">
+            <h2 class="text-3xl font-bold text-primary mb-6 text-center">游戏暂停</h2>
+            <button id="resumeBtn" class="w-full bg-secondary hover:bg-secondary/80 text-white font-bold py-3 px-4 rounded-lg shadow transition-all transform hover:scale-105">
+                <i class="fa fa-play mr-2"></i>继续游戏
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // 获取DOM元素
+        const gameCanvas = document.getElementById('gameCanvas');
+        const gameCtx = gameCanvas.getContext('2d');
+        const nextPieceCanvas = document.getElementById('nextPieceCanvas');
+        const nextPieceCtx = nextPieceCanvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const levelElement = document.getElementById('level');
+        const linesElement = document.getElementById('lines');
+        const startBtn = document.getElementById('startBtn');
+        const leftBtn = document.getElementById('leftBtn');
+        const rightBtn = document.getElementById('rightBtn');
+        const downBtn = document.getElementById('downBtn');
+        const rotateBtn = document.getElementById('rotateBtn');
+        const instructionsBtn = document.getElementById('instructionsBtn');
+        const closeInstructionsBtn = document.getElementById('closeInstructionsBtn');
+        const instructionsModal = document.getElementById('instructionsModal');
+        const gameOverModal = document.getElementById('gameOverModal');
+        const finalScoreElement = document.getElementById('finalScore');
+        const finalLevelElement = document.getElementById('finalLevel');
+        const finalLinesElement = document.getElementById('finalLines');
+        const playAgainBtn = document.getElementById('playAgainBtn');
+        const pauseModal = document.getElementById('pauseModal');
+        const resumeBtn = document.getElementById('resumeBtn');
+        
+        // 游戏设置
+        const COLS = 10;
+        const ROWS = 20;
+        const BLOCK_SIZE = 30;
+        let grid = [];
+        let currentPiece = null;
+        let nextPiece = null;
+        let score = 0;
+        let level = 1;
+        let lines = 0;
+        let gameSpeed = 1000; // 初始下落速度（毫秒）
+        let gameInterval;
+        let isGameRunning = false;
+        let isPaused = false;
+        
+        // 方块类型定义
+        const SHAPES = [
+            [[1, 1, 1, 1]], // I
+            [[1, 0, 0], [1, 1, 1]], // J
+            [[0, 0, 1], [1, 1, 1]], // L
+            [[1, 1], [1, 1]], // O
+            [[0, 1, 1], [1, 1, 0]], // S
+            [[0, 1, 0], [1, 1, 1]], // T
+            [[1, 1, 0], [0, 1, 1]] // Z
+        ];
+        
+        // 方块颜色
+        const COLORS = [
+            '#06B6D4', // I
+            '#2563EB', // J
+            '#F59E0B', // L
+            '#EAB308', // O
+            '#10B981', // S
+            '#8B5CF6', // T
+            '#EF4444'  // Z
+        ];
+        
+        // 初始化游戏
+        function initGame() {
+            // 设置画布尺寸
+            gameCanvas.width = COLS * BLOCK_SIZE;
+            gameCanvas.height = ROWS * BLOCK_SIZE;
+            nextPieceCanvas.width = 4 * BLOCK_SIZE;
+            nextPieceCanvas.height = 4 * BLOCK_SIZE;
+            
+            // 初始化网格
+            grid = Array(ROWS).fill().map(() => Array(COLS).fill(0));
+            
+            // 重置游戏状态
+            score = 0;
+            level = 1;
+            lines = 0;
+            gameSpeed = 1000;
+            
+            // 更新UI
+            updateScore();
+            
+            // 生成初始方块
+            currentPiece = createPiece();
+            nextPiece = createPiece();
+            
+            // 绘制游戏
+            drawGame();
+            
+            // 绘制下一个方块预览
+            drawNextPiece();
+        }
+        
+        // 创建新方块
+        function createPiece() {
+            const typeIndex = Math.floor(Math.random() * SHAPES.length);
+            const shape = SHAPES[typeIndex];
+            const color = COLORS[typeIndex];
+            
+            // 初始位置
+            const x = Math.floor((COLS - shape[0].length) / 2);
+            const y = 0;
+            
+            return {
+                shape,
+                color,
+                x,
+                y,
+                typeIndex
+            };
+        }
+        
+        // 绘制游戏
+        function drawGame() {
+            // 清空画布
+            gameCtx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
+            
+            // 绘制网格
+            drawGrid();
+            
+            // 绘制已落下的方块
+            drawGridBlocks();
+            
+            // 绘制当前方块
+            drawPiece(currentPiece, gameCtx);
+        }
+        
+        // 绘制网格
+        function drawGrid() {
+            gameCtx.strokeStyle = '#374151';
+            gameCtx.lineWidth = 0.5;
+            
+            for (let row = 0; row < ROWS; row++) {
+                for (let col = 0; col < COLS; col++) {
+                    gameCtx.strokeRect(
+                        col * BLOCK_SIZE, 
+                        row * BLOCK_SIZE, 
+                        BLOCK_SIZE, 
+                        BLOCK_SIZE
+                    );
+                }
+            }
+        }
+        
+        // 绘制网格中的方块
+        function drawGridBlocks() {
+            for (let row = 0; row < ROWS; row++) {
+                for (let col = 0; col < COLS; col++) {
+                    if (grid[row][col]) {
+                        drawBlock(
+                            gameCtx,
+                            col * BLOCK_SIZE,
+                            row * BLOCK_SIZE,
+                            COLORS[grid[row][col] - 1]
+                        );
+                    }
+                }
+            }
+        }
+        
+        // 绘制方块
+        function drawPiece(piece, ctx) {
+            piece.shape.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value) {
+                        drawBlock(
+                            ctx,
+                            (piece.x + x) * BLOCK_SIZE,
+                            (piece.y + y) * BLOCK_SIZE,
+                            piece.color
+                        );
+                    }
+                });
+            });
+        }
+        
+        // 绘制单个方块
+        function drawBlock(ctx, x, y, color) {
+            // 主方块
+            ctx.fillStyle = color;
+            ctx.fillRect(x, y, BLOCK_SIZE, BLOCK_SIZE);
+            
+            // 高光效果
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.fillRect(x, y, BLOCK_SIZE, BLOCK_SIZE / 4);
+            ctx.fillRect(x, y, BLOCK_SIZE / 4, BLOCK_SIZE);
+            
+            // 阴影效果
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+            ctx.fillRect(x, y + BLOCK_SIZE * 3/4, BLOCK_SIZE, BLOCK_SIZE / 4);
+            ctx.fillRect(x + BLOCK_SIZE * 3/4, y, BLOCK_SIZE / 4, BLOCK_SIZE);
+            
+            // 边框
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(x, y, BLOCK_SIZE, BLOCK_SIZE);
+        }
+        
+        // 绘制下一个方块预览
+        function drawNextPiece() {
+            nextPieceCtx.clearRect(0, 0, nextPieceCanvas.width, nextPieceCanvas.height);
+            
+            // 计算居中位置
+            const offsetX = (nextPieceCanvas.width - nextPiece.shape[0].length * BLOCK_SIZE) / 2;
+            const offsetY = (nextPieceCanvas.height - nextPiece.shape.length * BLOCK_SIZE) / 2;
+            
+            // 绘制下一个方块
+            nextPiece.shape.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value) {
+                        drawBlock(
+                            nextPieceCtx,
+                            offsetX + x * BLOCK_SIZE,
+                            offsetY + y * BLOCK_SIZE,
+                            nextPiece.color
+                        );
+                    }
+                });
+            });
+        }
+        
+        // 检查移动是否有效
+        function isValidMove(piece, moveX, moveY, shape = null) {
+            shape = shape || piece.shape;
+            
+            for (let y = 0; y < shape.length; y++) {
+                for (let x = 0; x < shape[y].length; x++) {
+                    if (shape[y][x]) {
+                        const newX = piece.x + x + moveX;
+                        const newY = piece.y + y + moveY;
+                        
+                        // 检查是否超出边界
+                        if (newX < 0 || newX >= COLS || newY >= ROWS) {
+                            return false;
+                        }
+                        
+                        // 检查是否与已落下的方块碰撞（忽略负的Y值，允许方块在屏幕外生成）
+                        if (newY >= 0 && grid[newY][newX]) {
+                            return false;
+                        }
+                    }
+                }
+            }
+            
+            return true;
+        }
+        
+        // 旋转方块
+        function rotatePiece() {
+            if (!isGameRunning || isPaused) return;
+            
+            // 保存当前形状
+            const currentShape = currentPiece.shape;
+            
+            // 创建旋转后的新形状
+            const newShape = [];
+            for (let i = 0; i < currentShape[0].length; i++) {
+                const row = [];
+                for (let j = currentShape.length - 1; j >= 0; j--) {
+                    row.push(currentShape[j][i]);
+                }
+                newShape.push(row);
+            }
+            
+            // 尝试旋转（如果旋转后会碰撞，则不旋转）
+            if (isValidMove(currentPiece, 0, 0, newShape)) {
+                currentPiece.shape = newShape;
+                drawGame();
+            }
+        }
+        
+        // 移动方块
+        function movePiece(dir) {
+            if (!isGameRunning || isPaused) return;
+            
+            let moveX = 0;
+            let moveY = 0;
+            
+            switch(dir) {
+                case 'left':
+                    moveX = -1;
+                    break;
+                case 'right':
+                    moveX = 1;
+                    break;
+                case 'down':
+                    moveY = 1;
+                    break;
+            }
+            
+            // 检查移动是否有效
+            if (isValidMove(currentPiece, moveX, moveY)) {
+                currentPiece.x += moveX;
+                currentPiece.y += moveY;
+                drawGame();
+                return true;
+            } else if (dir === 'down') {
+                // 如果下移无效，则固定当前方块
+                lockPiece();
+                return false;
+            }
+            
+            return true;
+        }
+        
+        // 快速下落
+        function hardDrop() {
+            if (!isGameRunning || isPaused) return;
+            
+            while (movePiece('down')) {
+                // 继续下落直到无法移动
+            }
+        }
+        
+        // 固定当前方块
+        function lockPiece() {
+            currentPiece.shape.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value) {
+                        // 检查游戏是否结束（方块超出顶部）
+                        if (currentPiece.y + y < 0) {
+                            gameOver();
+                            return;
+                        }
+                        
+                        // 将方块添加到网格中
+                        grid[currentPiece.y + y][currentPiece.x + x] = currentPiece.typeIndex + 1;
+                    }
+                });
+            });
+            
+            // 检查并消除完整的行
+            checkLines();
+            
+            // 获取下一个方块
+            currentPiece = nextPiece;
+            nextPiece = createPiece();
+            
+            // 绘制下一个方块预览
+            drawNextPiece();
+            
+            // 如果新方块一出现就碰撞，游戏结束
+            if (!isValidMove(currentPiece, 0, 0)) {
+                gameOver();
+            }
+        }
+        
+        // 检查并消除完整的行
+        function checkLines() {
+            let linesCleared = 0;
+            
+            for (let row = ROWS - 1; row >= 0; row--) {
+                // 检查当前行是否完整
+                if (grid[row].every(cell => cell !== 0)) {
+                    // 消除该行
+                    grid.splice(row, 1);
+                    
+                    // 在顶部添加一个新的空行
+                    grid.unshift(Array(COLS).fill(0));
+                    
+                    // 行数计数增加
+                    linesCleared++;
+                    
+                    // 由于删除了一行，需要重新检查当前位置
+                    row++;
+                }
+            }
+            
+            // 如果有消除的行，更新分数和等级
+            if (linesCleared > 0) {
+                // 计算得分（单行100分，多行有额外奖励）
+                const lineScores = [0, 100, 300, 500, 800];
+                score += lineScores[linesCleared] * level;
+                
+                // 更新已消除行数
+                lines += linesCleared;
+                
+                // 检查是否升级
+                const newLevel = Math.floor(lines / 10) + 1;
+                if (newLevel > level) {
+                    level = newLevel;
+                    
+                    // 调整游戏速度
+                    gameSpeed = Math.max(100, 1000 - (level - 1) * 100);
+                    
+                    // 重启游戏循环以应用新速度
+                    if (isGameRunning) {
+                        clearInterval(gameInterval);
+                        gameInterval = setInterval(gameLoop, gameSpeed);
+                    }
+                }
+                
+                // 更新UI
+                updateScore();
+                
+                // 显示消除动画
+                animateLinesCleared(linesCleared);
+            }
+        }
+        
+        // 显示消除行的动画
+        function animateLinesCleared(linesCount) {
+            // 这里可以添加消除行的动画效果
+            // 例如闪烁或其他视觉反馈
+            drawGame();
+        }
+        
+        // 更新分数显示
+        function updateScore() {
+            scoreElement.textContent = score;
+            levelElement.textContent = level;
+            linesElement.textContent = lines;
+        }
+        
+        // 游戏循环
+        function gameLoop() {
+            movePiece('down');
+        }
+        
+        // 开始/暂停游戏
+        function toggleGame() {
+            if (isGameRunning) {
+                if (isPaused) {
+                    // 继续游戏
+                    resumeGame();
+                } else {
+                    // 暂停游戏
+                    pauseGame();
+                }
+            } else {
+                // 开始游戏
+                startGame();
+            }
+        }
+        
+        // 开始游戏
+        function startGame() {
+            if (isGameRunning) return;
+            
+            // 初始化游戏
+            initGame();
+            
+            // 开始游戏循环
+            isGameRunning = true;
+            isPaused = false;
+            gameInterval = setInterval(gameLoop, gameSpeed);
+            
+            // 更新按钮文本
+            startBtn.innerHTML = '<i class="fa fa-pause"></i> 暂停';
+        }
+        
+        // 暂停游戏
+        function pauseGame() {
+            if (!isGameRunning || isPaused) return;
+            
+            // 暂停游戏循环
+            clearInterval(gameInterval);
+            isPaused = true;
+            
+            // 显示暂停模态框
+            pauseModal.classList.remove('hidden');
+            
+            // 更新按钮文本
+            startBtn.innerHTML = '<i class="fa fa-play"></i> 继续';
+        }
+        
+        // 恢复游戏
+        function resumeGame() {
+            if (!isGameRunning || !isPaused) return;
+            
+            // 恢复游戏循环
+            gameInterval = setInterval(gameLoop, gameSpeed);
+            isPaused = false;
+            
+            // 隐藏暂停模态框
+            pauseModal.classList.add('hidden');
+            
+            // 更新按钮文本
+            startBtn.innerHTML = '<i class="fa fa-pause"></i> 暂停';
+        }
+        
+        // 游戏结束
+        function gameOver() {
+            // 停止游戏循环
+            clearInterval(gameInterval);
+            isGameRunning = false;
+            isPaused = false;
+            
+            // 更新游戏结束模态框
+            finalScoreElement.textContent = score;
+            finalLevelElement.textContent = level;
+            finalLinesElement.textContent = lines;
+            gameOverModal.classList.remove('hidden');
+            
+            // 更新按钮文本
+            startBtn.innerHTML = '<i class="fa fa-play"></i> 开始';
+        }
+        
+        // 重新开始游戏
+        function restartGame() {
+            // 停止当前游戏循环
+            clearInterval(gameInterval);
+            
+            // 隐藏模态框
+            gameOverModal.classList.add('hidden');
+            pauseModal.classList.add('hidden');
+            
+            // 初始化游戏
+            initGame();
+            
+            // 开始新游戏
+            isGameRunning = true;
+            gameInterval = setInterval(gameLoop, gameSpeed);
+            
+            // 更新按钮文本
+            startBtn.innerHTML = '<i class="fa fa-pause"></i> 暂停';
+        }
+        
+        // 事件监听
+        startBtn.addEventListener('click', toggleGame);
+        leftBtn.addEventListener('click', () => movePiece('left'));
+        rightBtn.addEventListener('click', () => movePiece('right'));
+        downBtn.addEventListener('click', () => movePiece('down'));
+        rotateBtn.addEventListener('click', rotatePiece);
+        
+        // 键盘控制
+        document.addEventListener('keydown', (e) => {
+            if (!isGameRunning) return;
+            
+            switch(e.key) {
+                case 'ArrowLeft':
+                    movePiece('left');
+                    break;
+                case 'ArrowRight':
+                    movePiece('right');
+                    break;
+                case 'ArrowDown':
+                    movePiece('down');
+                    break;
+                case 'ArrowUp':
+                    rotatePiece();
+                    break;
+                case ' ':
+                    hardDrop();
+                    break;
+                case 'p':
+                case 'P':
+                    toggleGame();
+                    break;
+                case 'r':
+                case 'R':
+                    restartGame();
+                    break;
+            }
+        });
+        
+        // 游戏说明模态框
+        instructionsBtn.addEventListener('click', () => {
+            instructionsModal.classList.remove('hidden');
+        });
+        
+        closeInstructionsBtn.addEventListener('click', () => {
+            instructionsModal.classList.add('hidden');
+        });
+        
+        // 再玩一次
+        playAgainBtn.addEventListener('click', restartGame);
+        
+        // 恢复游戏
+        resumeBtn.addEventListener('click', resumeGame);
+        
+        // 窗口大小改变时调整画布
+        window.addEventListener('resize', () => {
+            // 重新绘制游戏
+            if (isGameRunning) {
+                drawGame();
+                drawNextPiece();
+            }
+        });
+        
+        // 初始化游戏
+        initGame();
+    </script>
+</body>
+</html> 
