@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的HTML游戏</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        #game-container {
+            width: 800px;
+            height: 600px;
+            background-color: #ffffff;
+            border: 2px solid #000000;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+        }
+        #game-header {
+            background-color: #007bff;
+            color: #ffffff;
+            padding: 10px;
+            text-align: center;
+            font-size: 24px;
+        }
+        #game-content {
+            flex-grow: 1;
+            padding: 20px;
+            text-align: center;
+        }
+        #game-footer {
+            background-color: #007bff;
+            color: #ffffff;
+            padding: 10px;
+            text-align: center;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="game-header">
+            <h1>欢迎来到我的HTML游戏</h1>
+        </div>
+        <div id="game-content">
+            <p>点击下面的链接进入游戏。</p>
+            <a href="lion.html" target="_blank">林航</a>
+        </div>
+        <div id="game-footer">
+            <p>版权所有 © 2023 我的游戏公司</p>
+        </div>
+    </div>
+</body>
+</html>

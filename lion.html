@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>魔法书店的秘密 | 文字冒险游戏</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#4A3728', // 深棕色
+                        secondary: '#9E7C5E', // 棕褐色
+                        accent: '#B85C38', // 红褐色
+                        dark: '#2D2424', // 近黑色
+                        light: '#E5E5CB', // 米白色
+                    },
+                    fontFamily: {
+                        serif: ['Merriweather', 'serif'],
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .text-shadow {
+                text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            }
+            .bg-texture {
+                background-image: url('https://picsum.photos/id/106/1200/800');
+                background-size: cover;
+                background-position: center;
+                background-attachment: fixed;
+            }
+            .book-hover {
+                transition: transform 0.3s ease, box-shadow 0.3s ease;
+            }
+            .book-hover:hover {
+                transform: translateY(-5px) scale(1.02);
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+            }
+            .choice-appear {
+                animation: fadeIn 0.5s ease forwards;
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            @keyframes fadeIn {
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+        }
+    </style>
+</head>
+<body class="bg-dark text-light min-h-screen flex flex-col">
+    <!-- 背景遮罩 -->
+    <div class="fixed inset-0 bg-dark/70 z-0"></div>
+    
+    <!-- 页面容器 -->
+    <div class="relative z-10 flex-grow flex flex-col max-w-4xl mx-auto px-4 py-8">
+        <!-- 顶部导航 -->
+        <header class="mb-8">
+            <div class="flex justify-between items-center">
+                <h1 class="text-[clamp(2rem,5vw,3.5rem)] font-serif font-bold text-light text-shadow">
+                    <i class="fa-solid fa-book-open text-accent mr-3"></i>魔法书店的秘密
+                </h1>
+                <div class="flex space-x-4">
+                    <button id="saveBtn" class="text-light hover:text-accent transition-colors">
+                        <i class="fa-solid fa-bookmark"></i> 保存
+                    </button>
+                    <button id="restartBtn" class="text-light hover:text-accent transition-colors">
+                        <i class="fa-solid fa-refresh"></i> 重启
+                    </button>
+                </div>
+            </div>
+            <div class="h-px bg-secondary/30 mt-4"></div>
+        </header>
+        
+        <!-- 主内容区 -->
+        <main class="flex-grow flex flex-col">
+            <!-- 故事区域 -->
+            <div id="story" class="bg-primary/80 backdrop-blur-sm rounded-lg p-6 md:p-8 shadow-xl mb-8 flex-grow">
+                <div class="prose prose-lg prose-invert max-w-none">
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        暴雨拍打玻璃的声音中，你推开了「时光旧书店」的木门。
+                    </p>
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        老旧的铜铃叮当作响，空气中弥漫着霉味与檀香混合的气息。
+                    </p>
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        柜台后坐着一位戴圆框眼镜的老人，他头也不抬地说：「选一本书吧，孩子。」
+                    </p>
+                </div>
+            </div>
+            
+            <!-- 选择区域 -->
+            <div id="choices" class="space-y-4 mb-8">
+                <button class="choice-btn book-hover w-full bg-secondary hover:bg-accent text-light py-4 px-6 rounded-lg text-left font-medium text-lg flex items-center transition-all duration-300" onclick="choose('神秘古籍')">
+                    <i class="fa-solid fa-bookmark text-light/80 mr-3"></i>
+                    <span>伸手触碰书架上发光的古籍</span>
+                </button>
+                <button class="choice-btn book-hover w-full bg-secondary hover:bg-accent text-light py-4 px-6 rounded-lg text-left font-medium text-lg flex items-center transition-all duration-300" onclick="choose('老旧日记')">
+                    <i class="fa-solid fa-bookmark text-light/80 mr-3"></i>
+                    <span>翻开桌上泛黄的日记本</span>
+                </button>
+                <button class="choice-btn book-hover w-full bg-secondary hover:bg-accent text-light py-4 px-6 rounded-lg text-left font-medium text-lg flex items-center transition-all duration-300" onclick="choose('离开书店')">
+                    <i class="fa-solid fa-bookmark text-light/80 mr-3"></i>
+                    <span>转身离开书店</span>
+                </button>
+            </div>
+        </main>
+        
+        <!-- 页脚 -->
+        <footer class="text-center text-light/60 text-sm py-4">
+            <p>© 2025 魔法书店 | 点击按钮探索故事</p>
+        </footer>
+    </div>
+    
+    <!-- 音效元素 -->
+    <audio id="choiceSound" preload="auto">
+        <source src="https://assets.mixkit.co/sfx/preview/mixkit-book-page-turn-1152.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="ambientSound" loop preload="auto">
+        <source src="https://assets.mixkit.co/music/preview/mixkit-rain-falling-on-the-roof-1167.mp3" type="audio/mpeg">
+    </audio>
+    
+    <script>
+        // 游戏状态管理
+        const gameState = {
+            currentChoice: "初始",
+            history: [],
+            saveSlot: localStorage.getItem('bookstoreGameSave') 
+                ? JSON.parse(localStorage.getItem('bookstoreGameSave')) 
+                : null
+        };
+        
+        // 故事数据结构
+        const choices = {
+            "初始": {
+                text: `
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        暴雨拍打玻璃的声音中，你推开了「时光旧书店」的木门。
+                    </p>
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        老旧的铜铃叮当作响，空气中弥漫着霉味与檀香混合的气息。
+                    </p>
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        柜台后坐着一位戴圆框眼镜的老人，他头也不抬地说：「选一本书吧，孩子。」
+                    </p>
+                `,
+                choices: ["神秘古籍", "老旧日记", "离开书店"],
+                image: "https://picsum.photos/id/106/800/400"
+            },
+            "神秘古籍": {
+                text: `
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        古籍封面浮现出龙形暗纹，指尖触碰到书页的瞬间，一股电流窜遍全身。
+                    </p>
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        老人突然抬头：「这本书会吞噬好奇者的灵魂。」
+                    </p>
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        你看到书页间夹着一片干枯的玫瑰花瓣。
+                    </p>
+                `,
+                choices: ["询问玫瑰的故事", "合上古籍逃跑", "撕下花瓣带走"],
+                image: "https://picsum.photos/id/102/800/400"
+            },
+            "老旧日记": {
+                text: `
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        日记本第一页写着「1937年12月12日」，字迹被水渍晕染。
+                    </p>
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        翻到最后一页，空白处用血红色墨水写着：「不要相信镜子里的人」。
+                    </p>
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        老人咳嗽两声：「有些过去不该被翻开。」
+                    </p>
+                `,
+                choices: ["追问日记主人是谁", "查看书店里的镜子", "放回日记本"],
+                image: "https://picsum.photos/id/108/800/400"
+            },
+            "离开书店": {
+                text: `
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        你拉开木门，暴雨突然停止，月光照亮街道。
+                    </p>
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        回头望去，书店已消失不见，手中多了一张泛黄的书签，上面写着：「下次再见」。
+                    </p>
+                    <p class="text-[clamp(1.2rem,3vw,1.5rem)] leading-relaxed font-serif text-accent">
+                        <b>结局：未开启的冒险</b>
+                    </p>
+                `,
+                choices: [],
+                image: "https://picsum.photos/id/103/800/400",
+                ending: true
+            },
+            "询问玫瑰的故事": {
+                text: `
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        老人沉默片刻，从口袋里掏出一枚银戒：「她戴着这枚戒指走进书店，再也没出来。」
+                    </p>
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        古籍突然剧烈震动，玫瑰花瓣飘向柜台后的暗门。
+                    </p>
+                    <p class="text-[clamp(1.2rem,3vw,1.5rem)] leading-relaxed font-serif text-accent">
+                        <b>请选择：</b>
+                    </p>
+                `,
+                choices: ["推开暗门寻找答案", "留在原地安抚老人"],
+                image: "https://picsum.photos/id/118/800/400"
+            },
+            "合上古籍逃跑": {
+                text: `
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        你跌跌撞撞冲向门口，却发现所有书架都在移动，挡住去路。
+                    </p>
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        古籍漂浮在空中，书页发出尖啸：「你看到了不该看的东西……」
+                    </p>
+                    <p class="text-[clamp(1.2rem,3vw,1.5rem)] leading-relaxed font-serif text-accent">
+                        <b>结局：被吞噬的窥视者</b>
+                    </p>
+                `,
+                choices: [],
+                image: "https://picsum.photos/id/119/800/400",
+                ending: true
+            },
+            "撕下花瓣带走": {
+                text: `
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        花瓣在掌心化为灰烬，老人露出诡异的微笑：「你现在也是书的一部分了。」
+                    </p>
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        你的影子渐渐透明，融入书架的阴影中。
+                    </p>
+                    <p class="text-[clamp(1.2rem,3vw,1.5rem)] leading-relaxed font-serif text-accent">
+                        <b>结局：永远的守书人</b>
+                    </p>
+                `,
+                choices: [],
+                image: "https://picsum.photos/id/120/800/400",
+                ending: true
+            },
+            "追问日记主人是谁": {
+                text: `
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        老人的眼镜突然泛起白雾：「她是最后一个试图改变过去的人。」
+                    </p>
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        窗外的雨声突然变得震耳欲聋，日记本的纸张开始自动翻动。
+                    </p>
+                    <p class="text-[clamp(1.2rem,3vw,1.5rem)] leading-relaxed font-serif text-accent">
+                        <b>请选择：</b>
+                    </p>
+                `,
+                choices: ["跟随日记指引的页码", "合上日记本逃离书店"],
+                image: "https://picsum.photos/id/121/800/400"
+            },
+            "查看书店里的镜子": {
+                text: `
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        镜子里的你穿着一件陌生的黑色风衣，手里拿着那本神秘古籍。
+                    </p>
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        镜中人与你同步动作，但眨眼时却慢了半拍。
+                    </p>
+                    <p class="text-[clamp(1.2rem,3vw,1.5rem)] leading-relaxed font-serif text-accent">
+                        <b>请选择：</b>
+                    </p>
+                `,
+                choices: ["与镜中人对话", "用日记拍打镜面", "无视镜子继续探索"],
+                image: "https://picsum.photos/id/122/800/400"
+            },
+            "放回日记本": {
+                text: `
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        你小心翼翼地将日记放回原处，老人点头：「明智的选择。」
+                    </p>
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        突然，整面墙的书架缓缓转动，露出一条通往地下室的楼梯。
+                    </p>
+                    <p class="text-[clamp(1.2rem,3vw,1.5rem)] leading-relaxed font-serif text-accent">
+                        <b>请选择：</b>
+                    </p>
+                `,
+                choices: ["探索地下室", "询问老人关于楼梯的事", "立刻离开书店"],
+                image: "https://picsum.photos/id/123/800/400"
+            },
+            "推开暗门寻找答案": {
+                text: `
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        门后是一条点着蜡烛的走廊，尽头有个小房间，里面摆满了古老的照片。
+                    </p>
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        每张照片里都有同一个女孩，最后一张照片上的日期是今天。
+                    </p>
+                    <p class="text-[clamp(1.2rem,3vw,1.5rem)] leading-relaxed font-serif text-accent">
+                        <b>结局：永恒的等待</b>
+                    </p>
+                `,
+                choices: [],
+                image: "https://picsum.photos/id/124/800/400",
+                ending: true
+            },
+            "留在原地安抚老人": {
+                text: `
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        你握住老人颤抖的手，古籍突然合上，暗门也停止了震动。
+                    </p>
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        老人抬头，眼中闪烁着泪光：「谢谢你，孩子。我等这一刻等了很久。」
+                    </p>
+                    <p class="text-[clamp(1.2rem,3vw,1.5rem)] leading-relaxed font-serif text-accent">
+                        <b>结局：打破诅咒的人</b>
+                    </p>
+                `,
+                choices: [],
+                image: "https://picsum.photos/id/125/800/400",
+                ending: true
+            },
+            "跟随日记指引的页码": {
+                text: `
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        日记自动翻到第99页，上面写着：「在第三个沙漏停止时，转动地球仪的北极星。」
+                    </p>
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        你照做后，书架发出机关转动的声音，露出一个保险箱。
+                    </p>
+                    <p class="text-[clamp(1.2rem,3vw,1.5rem)] leading-relaxed font-serif text-accent">
+                        <b>请选择：</b>
+                    </p>
+                `,
+                choices: ["打开保险箱", "无视保险箱继续探索", "询问老人关于保险箱的事"],
+                image: "https://picsum.photos/id/126/800/400"
+            },
+            "合上日记本逃离书店": {
+                text: `
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        你紧紧合上日记本，冲向门口，但发现自己被困在一个无尽的走廊里。
+                    </p>
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        身后传来书页翻动的声音，越来越近...
+                    </p>
+                    <p class="text-[clamp(1.2rem,3vw,1.5rem)] leading-relaxed font-serif text-accent">
+                        <b>结局：迷失的灵魂</b>
+                    </p>
+                `,
+                choices: [],
+                image: "https://picsum.photos/id/127/800/400",
+                ending: true
+            },
+            "与镜中人对话": {
+                text: `
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        你问：「你是谁？」镜中人回答：「我是你未来的样子。」
+                    </p>
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        他/她递给你一把钥匙：「打开地下室的门，改变我们的命运。」
+                    </p>
+                    <p class="text-[clamp(1.2rem,3vw,1.5rem)] leading-relaxed font-serif text-accent">
+                        <b>请选择：</b>
+                    </p>
+                `,
+                choices: ["接过钥匙", "拒绝并打碎镜子", "无视镜中人继续探索"],
+                image: "https://picsum.photos/id/128/800/400"
+            },
+            "用日记拍打镜面": {
+                text: `
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        镜子应声而碎，但碎片悬浮在空中，形成一个漩涡。
+                    </p>
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        你被吸入其中，看到无数个自己在不同的时间线里做出不同的选择。
+                    </p>
+                    <p class="text-[clamp(1.2rem,3vw,1.5rem)] leading-relaxed font-serif text-accent">
+                        <b>结局：多元宇宙的观察者</b>
+                    </p>
+                `,
+                choices: [],
+                image: "https://picsum.photos/id/129/800/400",
+                ending: true
+            },
+            "无视镜子继续探索": {
+                text: `
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        你转身离开镜子，但镜中人的手突然从镜中伸出，抓住了你的肩膀。
+                    </p>
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        你听到冰冷的低语：「你逃不掉的...」
+                    </p>
+                    <p class="text-[clamp(1.2rem,3vw,1.5rem)] leading-relaxed font-serif text-accent">
+                        <b>结局：镜中的囚徒</b>
+                    </p>
+                `,
+                choices: [],
+                image: "https://picsum.photos/id/130/800/400",
+                ending: true
+            },
+            "探索地下室": {
+                text: `
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        地下室弥漫着霉味，墙壁上挂满了古老的地图。
+                    </p>
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        你发现一张标注着「时光之门」的羊皮纸，旁边有个需要密码的装置。
+                    </p>
+                    <p class="text-[clamp(1.2rem,3vw,1.5rem)] leading-relaxed font-serif text-accent">
+                        <b>请选择：</b>
+                    </p>
+                `,
+                choices: ["尝试输入今天的日期", "寻找密码线索", "返回地面"],
+                image: "https://picsum.photos/id/131/800/400"
+            },
+            "询问老人关于楼梯的事": {
+                text: `
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        老人推了推眼镜：「那是通向过去的路，但上去的人从未回来过。」
+                    </p>
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        你注意到他手腕上有一道奇怪的烧伤疤痕，形状像一把钥匙。
+                    </p>
+                    <p class="text-[clamp(1.2rem,3vw,1.5rem)] leading-relaxed font-serif text-accent">
+                        <b>请选择：</b>
+                    </p>
+                `,
+                choices: ["继续追问疤痕的事", "独自探索楼梯", "听从警告离开书店"],
+                image: "https://picsum.photos/id/132/800/400"
+            },
+            "立刻离开书店": {
+                text: `
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        你转身冲向门口，这次门没有阻碍你。
+                    </p>
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        暴雨依旧，但街道上多了一块新立的石碑：「纪念艾米丽·卡特，1937-2025」。
+                    </p>
+                    <p class="text-[clamp(1.2rem,3vw,1.5rem)] leading-relaxed font-serif text-accent">
+                        <b>结局：逃离的记忆</b>
+                    </p>
+                `,
+                choices: [],
+                image: "https://picsum.photos/id/133/800/400",
+                ending: true
+            },
+            "打开保险箱": {
+                text: `
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        保险箱里有一枚银戒指和一张照片，照片上是年轻时的老人和一个美丽的女孩。
+                    </p>
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        戒指内侧刻着「EC」，与照片背面的签名一致。
+                    </p>
+                    <p class="text-[clamp(1.2rem,3vw,1.5rem)] leading-relaxed font-serif text-accent">
+                        <b>结局：解开的谜题</b>
+                    </p>
+                `,
+                choices: [],
+                image: "https://picsum.photos/id/134/800/400",
+                ending: true
+            },
+            "无视保险箱继续探索": {
+                text: `
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        你继续探索书店，发现一本关于神秘学的书，里面夹着一张便签：
+                    </p>
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed italic">
+                        「要打破循环，必须让过去的自己做出不同的选择。」
+                    </p>
+                    <p class="text-[clamp(1.2rem,3vw,1.5rem)] leading-relaxed font-serif text-accent">
+                        <b>请选择：</b>
+                    </p>
+                `,
+                choices: ["尝试与过去的自己沟通", "寻找打破循环的方法", "离开书店不再回来"],
+                image: "https://picsum.photos/id/135/800/400"
+            },
+            "询问老人关于保险箱的事": {
+                text: `
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        老人突然变得严肃：「那是我不该打开的东西。」
+                    </p>
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        他从口袋里掏出一枚钥匙：「但也许你可以。」
+                    </p>
+                    <p class="text-[clamp(1.2rem,3vw,1.5rem)] leading-relaxed font-serif text-accent">
+                        <b>请选择：</b>
+                    </p>
+                `,
+                choices: ["接过钥匙打开保险箱", "拒绝钥匙继续探索", "立刻离开书店"],
+                image: "https://picsum.photos/id/136/800/400"
+            },
+            "接过钥匙": {
+                text: `
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        你接过钥匙，镜中人与你同时露出微笑。
+                    </p>
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        地下室传来机关转动的声音，似乎有什么被解锁了。
+                    </p>
+                    <p class="text-[clamp(1.2rem,3vw,1.5rem)] leading-relaxed font-serif text-accent">
+                        <b>请选择：</b>
+                    </p>
+                `,
+                choices: ["前往地下室", "询问镜中人更多信息", "离开书店"],
+                image: "https://picsum.photos/id/137/800/400"
+            },
+            "拒绝并打碎镜子": {
+                text: `
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        你用尽全力打碎镜子，碎片划破了你的手掌。
+                    </p>
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        鲜血滴在地上，形成一个古老的符号，书店开始剧烈摇晃。
+                    </p>
+                    <p class="text-[clamp(1.2rem,3vw,1.5rem)] leading-relaxed font-serif text-accent">
+                        <b>结局：毁灭的开端</b>
+                    </p>
+                `,
+                choices: [],
+                image: "https://picsum.photos/id/138/800/400",
+                ending: true
+            },
+            "尝试输入今天的日期": {
+                text: `
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        你输入今天的日期，装置发出绿光，墙壁缓缓打开。
+                    </p>
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        里面是一个充满书籍的圆形房间，中央悬浮着一本无字天书。
+                    </p>
+                    <p class="text-[clamp(1.2rem,3vw,1.5rem)] leading-relaxed font-serif text-accent">
+                        <b>结局：知识的宝库</b>
+                    </p>
+                `,
+                choices: [],
+                image: "https://picsum.photos/id/139/800/400",
+                ending: true
+            },
+            "寻找密码线索": {
+                text: `
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        你在地下室的角落里发现一本日记，最后一页写着：「她的生日是我们的开始。」
+                    </p>
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        你注意到照片上女孩的项链坠刻着「6/15」。
+                    </p>
+                    <p class="text-[clamp(1.2rem,3vw,1.5rem)] leading-relaxed font-serif text-accent">
+                        <b>请选择：</b>
+                    </p>
+                `,
+                choices: ["输入6月15日", "继续寻找其他线索", "返回地面"],
+                image: "https://picsum.photos/id/140/800/400"
+            },
+            "返回地面": {
+                text: `
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        你决定不再探索，返回地面。
+                    </p>
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        老人微笑着看着你：「明智的选择。不是所有秘密都值得揭晓。」
+                    </p>
+                    <p class="text-[clamp(1.2rem,3vw,1.5rem)] leading-relaxed font-serif text-accent">
+                        <b>请选择：</b>
+                    </p>
+                `,
+                choices: ["询问老人更多关于书店的事", "购买一本书后离开", "直接离开书店"],
+                image: "https://picsum.photos/id/141/800/400"
+            },
+            "继续追问疤痕的事": {
+                text: `
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        老人沉默许久，终于开口：「这是时光之门的代价。」
+                    </p>
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        他卷起袖子，露出更多疤痕：「我曾试图救她，但每次都失败了。」
+                    </p>
+                    <p class="text-[clamp(1.2rem,3vw,1.5rem)] leading-relaxed font-serif text-accent">
+                        <b>请选择：</b>
+                    </p>
+                `,
+                choices: ["表示愿意帮助他", "害怕地后退", "立刻离开书店"],
+                image: "https://picsum.photos/id/142/800/400"
+            },
+            "独自探索楼梯": {
+                text: `
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        你小心翼翼地走下楼梯，发现一个充满灰尘的房间。
+                    </p>
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        墙上挂满了不同年代的书店照片，每张照片里都有同一个老人。
+                    </p>
+                    <p class="text-[clamp(1.2rem,3vw,1.5rem)] leading-relaxed font-serif text-accent">
+                        <b>结局：时间的囚徒</b>
+                    </p>
+                `,
+                choices: [],
+                image: "https://picsum.photos/id/143/800/400",
+                ending: true
+            },
+            "听从警告离开书店": {
+                text: `
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        你决定听从老人的警告，转身离开。
+                    </p>
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        走出书店时，你注意到门上的招牌写着：「时光旧书店 - 1937年开业」。
+                    </p>
+                    <p class="text-[clamp(1.2rem,3vw,1.5rem)] leading-relaxed font-serif text-accent">
+                        <b>结局：未被改变的过去</b>
+                    </p>
+                `,
+                choices: [],
+                image: "https://picsum.photos/id/144/800/400",
+                ending: true
+            },
+            "表示愿意帮助他": {
+                text: `
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        老人眼中泛起泪光：「真的吗？那就握住我的手。」
+                    </p>
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        你握住他的手，瞬间被拉入一个光影交错的空间。
+                    </p>
+                    <p class="text-[clamp(1.2rem,3vw,1.5rem)] leading-relaxed font-serif text-accent">
+                        <b>结局：打破时间的束缚</b>
+                    </p>
+                `,
+                choices: [],
+                image: "https://picsum.photos/id/145/800/400",
+                ending: true
+            },
+            "害怕地后退": {
+                text: `
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        你惊恐地后退，不小心撞倒了一个书架。
+                    </p>
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        老人迅速转身，眼中闪过一丝愤怒：「你不应该看到这些...」
+                    </p>
+                    <p class="text-[clamp(1.2rem,3vw,1.5rem)] leading-relaxed font-serif text-accent">
+                        <b>结局：被抹去的记忆</b>
+                    </p>
+                `,
+                choices: [],
+                image: "https://picsum.photos/id/146/800/400",
+                ending: true
+            },
+            "输入6月15日": {
+                text: `
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        你输入6月15日，装置发出柔和的蓝光，墙壁缓缓打开。
+                    </p>
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        里面是一个小房间，中央的玻璃柜里躺着一枚银戒指和一张泛黄的照片。
+                    </p>
+                    <p class="text-[clamp(1.2rem,3vw,1.5rem)] leading-relaxed font-serif text-accent">
+                        <b>结局：重逢的命运</b>
+                    </p>
+                `,
+                choices: [],
+                image: "https://picsum.photos/id/147/800/400",
+                ending: true
+            },
+            "购买一本书后离开": {
+                text: `
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        你挑选了一本关于神秘学的旧书，老人微笑着接过钱。
+                    </p>
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        离开时，你注意到书的扉页上写着：「我们还会再见的，朋友。」
+                    </p>
+                    <p class="text-[clamp(1.2rem,3vw,1.5rem)] leading-relaxed font-serif text-accent">
+                        <b>结局：未完的故事</b>
+                    </p>
+                `,
+                choices: [],
+                image: "https://picsum.photos/id/148/800/400",
+                ending: true
+            },
+            "直接离开书店": {
+                text: `
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        你没有理会老人，径直走出了书店。
+                    </p>
+                    <p class="text-[clamp(1.1rem,3vw,1.3rem)] leading-relaxed">
+                        走在街上，你突然意识到自己忘记了书店的样子，甚至忘记了为什么会来到这里。
+                    </p>
+                    <p class="text-[clamp(1.2rem,3vw,1.5rem)] leading-relaxed font-serif text-accent">
+                        <b>结局：被遗忘的相遇</b>
+                    </p>
+                `,
+                choices: [],
+                image: "https://picsum.photos/id/149/800/400",
+                ending: true
+            }
+        };
+        
+        // 游戏功能实现
+        function choose(option) {
+            // 播放选择音效
+            const choiceSound = document.getElementById('choiceSound');
+            choiceSound.currentTime = 0;
+            choiceSound.play().catch(e => console.log("音频播放失败:", e));
+            
+            // 更新游戏状态
+            gameState.currentChoice = option;
+            gameState.history.push(option);
+            
+            // 保存游戏进度
+            saveGameState();
+            
+            // 更新UI
+            updateStoryDisplay(option);
+        }
+        
+        function updateStoryDisplay(choiceKey) {
+            const currentChoice = choices[choiceKey];
+            const storyElement = document.getElementById('story');
+            const choicesElement = document.getElementById('choices');
+            
+            // 设置故事内容和背景图
+            storyElement.innerHTML = `
+                <div class="relative rounded-lg overflow-hidden">
+                    <div class="absolute inset-0 bg-gradient-to-t from-primary/95 to-primary/60 z-10"></div>
+                    <img src="${currentChoice.image}" alt="${choiceKey}" class="absolute inset-0 w-full h-full object-cover opacity-40">
+                    <div class="relative z-20">
+                        ${currentChoice.text}
+                    </div>
+                </div>
+            `;
+            
+            // 清除现有选项
+            choicesElement.innerHTML = '';
+            
+            // 添加新选项
+            currentChoice.choices.forEach((choice, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'choice-btn book-hover w-full bg-secondary hover:bg-accent text-light py-4 px-6 rounded-lg text-left font-medium text-lg flex items-center transition-all duration-300 choice-appear';
+                btn.style.animationDelay = `${index * 0.1}s`;
+                btn.innerHTML = `
+                    <i class="fa-solid fa-bookmark text-light/80 mr-3"></i>
+                    <span>${choice}</span>
+                `;
+                btn.onclick = () => choose(choice);
+                choicesElement.appendChild(btn);
+            });
+            
+            // 如果是结局，添加重新开始按钮
+            if (currentChoice.ending) {
+                const restartBtn = document.createElement('button');
+                restartBtn.className = 'choice-btn book-hover w-full bg-dark hover:bg-primary text-light py-4 px-6 rounded-lg text-left font-medium text-lg flex items-center justify-center transition-all duration-300 mt-4';
+                restartBtn.innerHTML = `
+                    <i class="fa-solid fa-refresh mr-3"></i>
+                    <span>重新开始游戏</span>
+                `;
+                restartBtn.onclick = restartGame;
+                choicesElement.appendChild(restartBtn);
+            }
+        }
+        
+        function restartGame() {
+            gameState.currentChoice = "初始";
+            gameState.history = [];
+            saveGameState();
+            updateStoryDisplay("初始");
+        }
+        
+        function saveGameState() {
+            try {
+                localStorage.setItem('bookstoreGameSave', JSON.stringify({
+                    currentChoice: gameState.currentChoice,
+                    history: gameState.history
+                }));
+            } catch (e) {
+                console.error("保存游戏状态失败:", e);
+            }
+        }
+        
+        function loadSavedGame() {
+            if (gameState.saveSlot) {
+                gameState.currentChoice = gameState.saveSlot.currentChoice;
+                gameState.history = gameState.saveSlot.history;
+                updateStoryDisplay(gameState.currentChoice);
+            }
+        }
+        
+        // 初始化环境音效
+        function initAmbientSound() {
+            const ambientSound = document.getElementById('ambientSound');
+            ambientSound.volume = 0.2;
+            
+            // 尝试自动播放，可能会被浏览器阻止
+            ambientSound.play().catch(e => {
+                console.log("自动播放环境音效失败，用户交互后再尝试");
+                // 点击任意按钮后尝试播放
+                document.addEventListener('click', function playOnClick() {
+                    ambientSound.play().catch(e => console.log("用户交互后播放仍失败:", e));
+                    document.removeEventListener('click', playOnClick);
+                });
+            });
+        }
+        
+        // 初始化游戏
+        document.addEventListener('DOMContentLoaded', () => {
+            // 绑定保存和重启按钮
+            document.getElementById('saveBtn').addEventListener('click', saveGameState);
+            document.getElementById('restartBtn').addEventListener('click', restartGame);
+            
+            // 检查是否有保存的游戏状态
+            if (gameState.saveSlot) {
+                const confirmLoad = confirm("发现已保存的游戏进度，是否加载？");
+                if (confirmLoad) {
+                    loadSavedGame();
+                    return;
+                }
+            }
+            
+            // 没有保存的游戏或用户选择不加载，从初始状态开始
+            updateStoryDisplay("初始");
+            
+            // 初始化环境音效
+            initAmbientSound();
+        });
+    </script>
+</body>
+</html>
+    
