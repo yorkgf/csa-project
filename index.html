@@ -4,10 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>APCSA2025的HTML游戏</title>
+    <!-- 引入 Font Awesome 图标库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
+        :root {
+            --primary-color: #007bff;
+            --text-color: #ffffff;
+            --background-color: #f0f0f0;
+        }
+
         body {
             font-family: Arial, sans-serif;
-            background-color: #f0f0f0;
+            background-color: var(--background-color);
             margin: 0;
             padding: 0;
             display: flex;
@@ -15,6 +23,7 @@
             align-items: center;
             height: 100vh;
         }
+
         #game-container {
             width: 800px;
             height: 600px;
@@ -24,24 +33,50 @@
             display: flex;
             flex-direction: column;
         }
+
         #game-header {
-            background-color: #007bff;
-            color: #ffffff;
+            background-color: var(--primary-color);
+            color: var(--text-color);
             padding: 10px;
             text-align: center;
             font-size: 24px;
         }
+
         #game-content {
             flex-grow: 1;
             padding: 20px;
             text-align: center;
         }
+
         #game-footer {
-            background-color: #007bff;
-            color: #ffffff;
+            background-color: var(--primary-color);
+            color: var(--text-color);
             padding: 10px;
             text-align: center;
             font-size: 14px;
+        }
+
+        .game-item {
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .heart-icon {
+            font-size: 20px;
+            cursor: pointer;
+            color: #ff4444;
+            transition: transform 0.2s ease;
+        }
+
+        .heart-icon:hover {
+            transform: scale(1.1);
+        }
+
+        .vote-count {
+            font-size: 16px;
+            color: #666;
         }
     </style>
 </head>
@@ -52,15 +87,103 @@
         </div>
         <div id="game-content">
             <p>点击下面的链接进入游戏。</p>
-            <a href="lion.html" target="_blank">林航</a><br>
-			<a href="allen.html" target="_blank">陈禹皓</a><br>
-			<a href="jerry.html" target="_blank">马铭浩</a><br>
-			<a href="andrew.html" target="_blank">葛嘉俊</a><br>
-			<a href="joe.html" target="_blank">孟子悦</a><br>
+            <div class="game-item">
+                <a href="lion.html" target="_blank">林航</a>
+                <span class="vote-count">0</span>
+                <i class="fas fa-heart heart-icon"></i>
+            </div>
+            <div class="game-item">
+                <a href="allen.html" target="_blank">陈禹皓</a>
+                <span class="vote-count">0</span>
+                <i class="fas fa-heart heart-icon"></i>
+            </div>
+            <div class="game-item">
+                <a href="jerry.html" target="_blank">马铭浩</a>
+                <span class="vote-count">0</span>
+                <i class="fas fa-heart heart-icon"></i>
+            </div>
+            <div class="game-item">
+                <a href="andrew.html" target="_blank">葛嘉俊</a>
+                <span class="vote-count">0</span>
+                <i class="fas fa-heart heart-icon"></i>
+            </div>
+            <div class="game-item">
+                <a href="joe.html" target="_blank">孟子悦</a>
+                <span class="vote-count">0</span>
+                <i class="fas fa-heart heart-icon"></i>
+            </div>
+            <div class="game-item">
+                <a href="chris.html" target="_blank">胡正灏</a>
+                <span class="vote-count">0</span>
+                <i class="fas fa-heart heart-icon"></i>
+            </div>
         </div>
         <div id="game-footer">
             <p>版权所有APCSA2025游戏公司</p>
         </div>
     </div>
+
+    <script>
+        // 初始化投票数据
+        let votes = {
+            "林航": 0,
+            "陈禹皓": 0,
+            "马铭浩": 0,
+            "葛嘉俊": 0,
+            "孟子悦": 0,
+            "胡正灏": 0
+        };
+
+        // 加载保存的投票数据
+        function loadVotes() {
+            const savedVotes = localStorage.getItem('gameVotes');
+            if (savedVotes) {
+                votes = JSON.parse(savedVotes);
+                updateVoteDisplay();
+            }
+        }
+
+        // 保存投票数据
+        function saveVotes() {
+            localStorage.setItem('gameVotes', JSON.stringify(votes));
+        }
+
+        // 更新投票显示
+        function updateVoteDisplay() {
+            document.querySelectorAll('.game-item').forEach(item => {
+                const playerName = item.querySelector('a').textContent;
+                const countElement = item.querySelector('.vote-count');
+                countElement.textContent = votes[playerName];
+            });
+        }
+
+        // 处理投票点击事件
+        function handleVoteClick(event) {
+            const heartIcon = event.target;
+            const gameItem = heartIcon.parentElement;
+            const playerName = gameItem.querySelector('a').textContent;
+            
+            votes[playerName]++;
+            saveVotes();
+            updateVoteDisplay();
+            
+            // 添加点击动画
+            heartIcon.style.transform = 'scale(0.9)';
+            setTimeout(() => {
+                heartIcon.style.transform = 'scale(1)';
+            }, 200);
+        }
+
+        // 绑定事件监听器
+        document.addEventListener('DOMContentLoaded', function() {
+            // 加载投票数据
+            loadVotes();
+            
+            // 为每个心形图标绑定点击事件
+            document.querySelectorAll('.heart-icon').forEach(icon => {
+                icon.addEventListener('click', handleVoteClick);
+            });
+        });
+    </script>
 </body>
 </html>
